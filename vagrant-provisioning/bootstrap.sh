@@ -10,6 +10,18 @@ EOF
 
 # Install docker from Docker-ce repository
 echo "[TASK 2] Install docker container engine"
+yum install -y wget curl >/dev/null 2>&1
+cd /etc/yum.repos.d
+mv CentOS-Base.repo CentOS-Base.repo.bak
+curl https://mirrors.aliyun.com/repo/Centos-7.repo -o CentOS-Base.repo >/dev/null 2>&1
+sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/CentOS-Base.repo
+curl https://mirrors.aliyun.com/repo/epel-7.repo -o epel.repo >/dev/null 2>&1
+cd /etc/yum.repos.d
+curl http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -o docker-ce.repo >/dev/null 2>&1
+yum clean all >/dev/null 2>&1
+yum makecache >/dev/null 2>&1
+yum repolist >/dev/null 2>&1
+
 yum install -y -q yum-utils device-mapper-persistent-data lvm2 > /dev/null 2>&1
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null 2>&1
 yum install -y -q docker-ce >/dev/null 2>&1
@@ -44,15 +56,14 @@ swapoff -a
 
 # Add yum repo file for Kubernetes
 echo "[TASK 8] Add yum repo file for kubernetes"
-cat >>/etc/yum.repos.d/kubernetes.repo<<EOF
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
 enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 
 # Install Kubernetes
@@ -72,6 +83,13 @@ systemctl reload sshd
 # Set Root password
 echo "[TASK 12] Set root password"
 echo "kubeadmin" | passwd --stdin root >/dev/null 2>&1
+
+# Set TimeZone
+echo "[TASK 13] Set TimeZone"
+timedatectl set-timezone Asia/Shanghai
+hwclock --systohc
+yum -y install ntp >/dev/null 2>&1
+ntpdate cn.pool.ntp.org >/dev/null 2>&1
 
 # Update vagrant user's bashrc file
 echo "export TERM=xterm" >> /etc/bashrc
