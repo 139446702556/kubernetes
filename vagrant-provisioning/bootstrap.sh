@@ -3,9 +3,9 @@
 # Update hosts file
 echo "[TASK 1] Update /etc/hosts file"
 cat >>/etc/hosts<<EOF
-172.42.42.100 kmaster.example.com kmaster
-172.42.42.101 kworker1.example.com kworker1
-172.42.42.102 kworker2.example.com kworker2
+192.168.56.100 kmaster
+192.168.56.101 kworker1
+192.168.56.102 kworker2
 EOF
 
 # Install docker from Docker-ce repository
@@ -25,6 +25,25 @@ yum repolist >/dev/null 2>&1
 yum install -y -q yum-utils device-mapper-persistent-data lvm2 > /dev/null 2>&1
 yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo > /dev/null 2>&1
 yum install -y -q docker-ce >/dev/null 2>&1
+
+echo "[TASK 2.1] Set docker daemon.json"
+mkdir -p /etc/docker
+touch daemon.json
+cat >>/etc/docker/daemon.json<<EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"]
+}
+EOF
+
+echo "[TASK 2.2] set docker proxy"
+mkdir -p /usr/lib/systemd/system/docker.service.d
+touch proxy.conf
+cat >>/usr/lib/systemd/system/docker.service.d/proxy.conf<<EOF
+[Service]
+Environment="http_proxy=http://192.168.1.140:8118"
+Environment="https_proxy=http://192.168.1.140:8118"
+EOF
+systemctl daemon-reload
 
 # Enable docker service
 echo "[TASK 3] Enable and start docker service"
@@ -68,7 +87,7 @@ EOF
 
 # Install Kubernetes
 echo "[TASK 9] Install Kubernetes (kubeadm, kubelet and kubectl)"
-yum install -y -q kubeadm kubelet kubectl >/dev/null 2>&1
+yum install -y -q kubeadm-1.23.0 kubelet-1.23.0 kubectl-1.23.0 >/dev/null 2>&1
 
 # Start and Enable kubelet service
 echo "[TASK 10] Enable and start kubelet service"
